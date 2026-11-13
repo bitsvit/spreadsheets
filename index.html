@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Діаграми у Google Таблицях — Інтерактивна вправа (7 клас)</title>
+  <!-- Підключення шрифтів Google Fonts (Inter та Roboto Mono для клітинок) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['Roboto Mono', 'monospace'],
+          },
+          colors: {
+            gsheet: {
+              DEFAULT: '#0F9D58',
+              dark: '#0B8043',
+              light: '#E6F4EA',
+              border: '#CEEAD6'
+            },
+            gblue: {
+              DEFAULT: '#1A73E8',
+              dark: '#1557B0',
+              light: '#E8F0FE'
+            },
+            gyellow: {
+              DEFAULT: '#F4B400',
+              light: '#FEF7E0'
+            },
+            gred: {
+              DEFAULT: '#DB4437',
+              light: '#FCE8E6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #F8F9FA;
+      color: #202124;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Плавні переходи та анімації */
+    .fade-in {
+      animation: fadeIn 0.35s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Стилізація клітинок симулятора Google Таблиць */
+    .sheet-cell {
+      user-select: none;
+      transition: background-color 0.1s ease;
+    }
+    .sheet-cell.selected {
+      background-color: #E8F0FE !important;
+      box-shadow: inset 0 0 0 1.5px #1A73E8;
+    }
+    .sheet-cell.active-corner {
+      position: relative;
+    }
+    .sheet-cell.active-corner::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      width: 7px;
+      height: 7px;
+      background-color: #1A73E8;
+      border: 1px solid #fff;
+      z-index: 10;
+    }
+
+    /* Пульсуючий маркер на схемі діаграми */
+    .hotspot-badge {
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .hotspot-badge:hover {
+      transform: scale(1.12);
+    }
+
+    /* Кастомний скролбар */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f3f4;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #dadce0;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #bdc1c6;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- ВЕРХНЯ ПАНЕЛЬ НАВІГАЦІЇ (У СТИЛІ GOOGLE WORKSPACE) -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Логотип та назва -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gsheet flex items-center justify-center text-white shadow-sm shrink-0">
+          <!-- Іконка Google Таблиць SVG -->
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="3" y1="15" x2="21" y2="15"></line>
+            <line x1="9" y1="9" x2="9" y2="21"></line>
+            <line x1="15" y1="9" x2="15" y2="21"></line>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base sm:text-lg text-gray-800 leading-tight">Діаграми у Google Таблицях</h1>
+            <span class="hidden sm:inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-gsheet-light text-gsheet-dark border border-gsheet-border">7 клас • НУШ</span>
+          </div>
+          <p class="text-xs text-gray-500">Інтерактивний тренажер за підручником І. Тріщук</p>
+        </div>
+      </div>
+
+      <!-- Індикатор прогресу та балів -->
+      <div id="header-stats" class="hidden items-center gap-3 sm:gap-4">
+        <div class="text-right">
+          <div class="text-xs text-gray-500 font-medium" id="header-student-name">Учень</div>
+          <div class="text-xs font-bold text-gsheet-dark">
+            Бали: <span id="header-score" class="text-sm">0</span> / 12
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full transition-colors" id="step-dot-1"></span>
+          <span class="w-2.5 h-2.5 rounded-full transition-colors" id="step-dot-2"></span>
+          <span class="w-2.5 h-2.5 rounded-full transition-colors" id="step-dot-3"></span>
+          <span class="w-2.5 h-2.5 rounded-full transition-colors" id="step-dot-4"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ОСНОВНИЙ КОНТЕЙНЕР ДОДАТКА -->
+  <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6 sm:py-8">
+
+    <!-- ==================== ЕКРАН 0: ВІТАННЯ ТА РЕЄСТРАЦІЯ ==================== -->
+    <section id="screen-welcome" class="fade-in max-w-2xl mx-auto">
+      <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+        <!-- Кольорова смужка Google -->
+        <div class="h-2 w-full flex">
+          <div class="w-1/4 bg-gblue"></div>
+          <div class="w-1/4 bg-gred"></div>
+          <div class="w-1/4 bg-gyellow"></div>
+          <div class="w-1/4 bg-gsheet"></div>
+        </div>
+
+        <div class="p-6 sm:p-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gblue-light text-gblue text-xs font-semibold mb-4">
+            <span>📊</span> Інформатика • 7 клас • Електронні таблиці
+          </div>
+
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-3">
+            Візуалізація даних: Діаграми в Google Таблицях
+          </h2>
+
+          <p class="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
+            Привіт! У цьому інтерактивному тренажері ти навчишся розрізняти елементи діаграм, обирати правильний тип графіка для життєвих задач та власноруч побудуєш діаграму у симуляторі <strong>Google Таблиць</strong>.
+          </p>
+
+          <!-- Картки структури вправи -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            <div class="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-start gap-3">
+              <span class="w-7 h-7 rounded-lg bg-gblue text-white font-bold text-sm flex items-center justify-center shrink-0">1</span>
+              <div>
+                <h3 class="font-semibold text-sm text-gray-800">Будова діаграми</h3>
+                <p class="text-xs text-gray-500">Визначаємо основні складові об'єкти (до 3 балів)</p>
+              </div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-start gap-3">
+              <span class="w-7 h-7 rounded-lg bg-gred text-white font-bold text-sm flex items-center justify-center shrink-0">2</span>
+              <div>
+                <h3 class="font-semibold text-sm text-gray-800">Обери тип діаграми</h3>
+                <p class="text-xs text-gray-500">Життєві задачі 7-класника (до 3 балів)</p>
+              </div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-start gap-3">
+              <span class="w-7 h-7 rounded-lg bg-gsheet text-white font-bold text-sm flex items-center justify-center shrink-0">3</span>
+              <div>
+                <h3 class="font-semibold text-sm text-gray-800">Симулятор Google Таблиць</h3>
+                <p class="text-xs text-gray-500">Практична побудова діаграми (до 3 балів)</p>
+              </div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-start gap-3">
+              <span class="w-7 h-7 rounded-lg bg-gyellow text-gray-900 font-bold text-sm flex items-center justify-center shrink-0">4</span>
+              <div>
+                <h3 class="font-semibold text-sm text-gray-800">Алгоритм та бліц-тест</h3>
+                <p class="text-xs text-gray-500">Перевірка знань правил роботи (до 3 балів)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Поле введення імені -->
+          <div class="bg-gsheet-light/60 border border-gsheet-border rounded-2xl p-4 sm:p-5 mb-6">
+            <label for="student-name-input" class="block text-sm font-semibold text-gray-800 mb-1.5">
+              Введи своє прізвище, ім'я та клас (для сертифіката):
+            </label>
+            <input
+              type="text"
+              id="student-name-input"
+              placeholder="Наприклад: Коваленко Максим, 7-А"
+              class="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 text-gray-900 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-gsheet focus:border-gsheet transition"
+            />
+            <p id="name-error" class="hidden text-xs text-gred font-medium mt-1.5">
+              Будь ласка, введи своє ім'я та прізвище перед початком вправи.
+            </p>
+          </div>
+
+          <button
+            onclick="startExercise()"
+            class="w-full py-3.5 px-6 rounded-xl bg-gsheet hover:bg-gsheet-dark active:scale-[0.99] text-white font-bold text-base shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Розпочати виконання вправи</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ЗАВДАННЯ 1: БУДОВА ДІАГРАМИ ==================== -->
+    <section id="screen-task-1" class="hidden fade-in">
+      <div class="bg-white rounded-3xl border border-gray-200 shadow-sm p-5 sm:p-8">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-6 border-b border-gray-100">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-gblue">Завдання 1 з 4 • Максимум 3 бали</span>
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">Будова діаграми в Google Таблицях</h2>
+          </div>
+          <button onclick="toggleHint(1)" class="px-3.5 py-2 rounded-xl bg-gyellow-light hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+            <span>💡</span> Підказка з підручника
+          </button>
+        </div>
+
+        <!-- Блок підказки -->
+        <div id="hint-1" class="hidden mb-6 p-4 rounded-2xl bg-gyellow-light border border-amber-200 text-sm text-amber-950">
+          <strong>Пригадай:</strong> <em>Назва діаграми</em> зазвичай розташована зверху. <em>Легенда</em> пояснює, якому кольору відповідає кожен ряд даних. <em>Вісь категорій (горизонтальна, X)</em> містить назви об'єктів (наприклад, місяці або предмети), а <em>Вісь значень (вертикальна, Y)</em> — числові показники. Усередині осей знаходиться <em>Область побудови</em> з <em>Рядами даних</em> (стовпцями).
+        </div>
+
+        <p class="text-sm sm:text-base text-gray-600 mb-6">
+          Уважно розглянь зразок стовпчастої діаграми з Google Таблиць. Підпиши кожен позначений цифрою (<strong>1–6</strong>) елемент діаграми, обравши правильну назву зі списку.
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <!-- Інтерактивна SVG-схема діаграми -->
+          <div class="lg:col-span-7 bg-gray-50 rounded-2xl border border-gray-200 p-3 sm:p-4">
+            <svg viewBox="0 0 560 360" class="w-full h-auto select-none">
+              <!-- Фон картки діаграми -->
+              <rect x="10" y="10" width="540" height="340" rx="12" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1.5"/>
+
+              <!-- 1: Назва діаграми -->
+              <text x="45" y="46" font-family="Inter, sans-serif" font-size="16" font-weight="700" fill="#202124">Відвідування шкільних гуртків (7-А клас)</text>
+              <g transform="translate(415, 39)">
+                <circle cx="0" cy="0" r="13" fill="#1A73E8"/>
+                <text x="0" y="4.5" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
+              </g>
+
+              <!-- 2: Легенда -->
+              <rect x="180" y="64" width="12" height="12" rx="2" fill="#4285F4"/>
+              <text x="198" y="74" font-size="12" fill="#5F6368">І семестр</text>
+              <rect x="275" y="64" width="12" height="12" rx="2" fill="#EA4335"/>
+              <text x="293" y="74" font-size="12" fill="#5F6368">ІІ семестр</text>
+              <g transform="translate(375, 70)">
+                <circle cx="0" cy="0" r="13" fill="#0F9D58"/>
+                <text x="0" y="4.5" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
+              </g>
+
+              <!-- 6: Область побудови (пунктирна рамка) -->
+              <rect x="85" y="95" width="430" height="190" rx="4" fill="#F8F9FA" stroke="#9AA0A6" stroke-dasharray="5,4" stroke-width="1.2"/>
+              <g transform="translate(495, 114)">
+                <circle cx="0" cy="0" r="13" fill="#9334E6"/>
+                <text x="0" y="4.5" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">6</text>
+              </g>
+
+              <!-- Сітка та значення осі Y -->
+              <line x1="85" y1="285" x2="515" y2="285" stroke="#80868B" stroke-width="1.5"/>
+              <line x1="85" y1="237" x2="515" y2="237" stroke="#E8EAED" stroke-width="1"/>
+              <line x1="85" y1="190" x2="515" y2="190" stroke="#E8EAED" stroke-width="1"/>
+              <line x1="85" y1="142" x2="515" y2="142" stroke="#E8EAED" stroke-width="1"/>
+              <line x1="85" y1="95" x2="85" y2="285" stroke="#80868B" stroke-width="1.5"/>
+
+              <text x="76" y="289" text-anchor="end" font-size="11" fill="#5F6368">0</text>
+              <text x="76" y="241" text-anchor="end" font-size="11" fill="#5F6368">5</text>
+              <text x="76" y="194" text-anchor="end" font-size="11" fill="#5F6368">10</text>
+              <text x="76" y="146" text-anchor="end" font-size="11" fill="#5F6368">15</text>
+              <text x="76" y="102" text-anchor="end" font-size="11" fill="#5F6368">20</text>
+
+              <!-- 4: Вісь значень (Y) -->
+              <g transform="translate(36, 190)">
+                <circle cx="0" cy="0" r="13" fill="#F4B400"/>
+                <text x="0" y="4.5" text-anchor="middle" font-size="12" font-weight="700" fill="#202124">4</text>
+              </g>
+
+              <!-- 3: Ряди даних (Стовпці) -->
+              <!-- Робототехніка -->
+              <rect x="115" y="170" width="28" height="115" rx="2" fill="#4285F4"/>
+              <rect x="147" y="132" width="28" height="153" rx="2" fill="#EA4335"/>
+              <!-- Футбол -->
+              <rect x="225" y="142" width="28" height="143" rx="2" fill="#4285F4"/>
+              <rect x="257" y="160" width="28" height="125" rx="2" fill="#EA4335"/>
+              <!-- Малювання -->
+              <rect x="335" y="190" width="28" height="95" rx="2" fill="#4285F4"/>
+              <rect x="367" y="180" width="28" height="105" rx="2" fill="#EA4335"/>
+              <!-- Шахи -->
+              <rect x="435" y="210" width="28" height="75" rx="2" fill="#4285F4"/>
+              <rect x="467" y="195" width="28" height="90" rx="2" fill="#EA4335"/>
+
+              <g transform="translate(268, 130)">
+                <circle cx="0" cy="0" r="13" fill="#DB4437"/>
+                <text x="0" y="4.5" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
+              </g>
+
+              <!-- Підписи категорій осі X -->
+              <text x="145" y="303" text-anchor="middle" font-size="11" fill="#3C4043">Робототехніка</text>
+              <text x="255" y="303" text-anchor="middle" font-size="11" fill="#3C4043">Футбол</text>
+              <text x="365" y="303" text-anchor="middle" font-size="11" fill="#3C4043">Малювання</text>
+              <text x="465" y="303" text-anchor="middle" font-size="11" fill="#3C4043">Шахи</text>
+
+              <!-- 5: Вісь категорій (X) -->
+              <g transform="translate(300, 330)">
+                <circle cx="0" cy="0" r="13" fill="#00ACC1"/>
+                <text x="0" y="4.5" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">5</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Список випадаючих полів для підписування -->
+          <div class="lg:col-span-5 space-y-3" id="task1-selects">
+            <!-- Генерується через JS -->
+          </div>
+        </div>
+
+        <!-- Зворотний зв'язок та кнопка переходу -->
+        <div id="feedback-1" class="hidden mt-6 p-4 rounded-2xl text-sm"></div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-end gap-3">
+          <button id="btn-check-1" onclick="checkTask1()" class="px-6 py-3 rounded-xl bg-gblue hover:bg-gblue-dark text-white font-semibold text-sm sm:text-base transition cursor-pointer">
+            Перевірити відповіді
+          </button>
+          <button id="btn-next-1" onclick="goToScreen('screen-task-2')" class="hidden px-6 py-3 rounded-xl bg-gsheet hover:bg-gsheet-dark text-white font-semibold text-sm sm:text-base transition cursor-pointer">
+            Наступне завдання →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ЗАВДАННЯ 2: ОБЕРИ ТИП ДІАГРАМИ ==================== -->
+    <section id="screen-task-2" class="hidden fade-in">
+      <div class="bg-white rounded-3xl border border-gray-200 shadow-sm p-5 sm:p-8">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-6 border-b border-gray-100">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-gred">Завдання 2 з 4 • Максимум 3 бали</span>
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">Обери доречний тип діаграми</h2>
+          </div>
+          <button onclick="toggleHint(2)" class="px-3.5 py-2 rounded-xl bg-gyellow-light hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+            <span>💡</span> Підказка з підручника
+          </button>
+        </div>
+
+        <div id="hint-2" class="hidden mb-6 p-4 rounded-2xl bg-gyellow-light border border-amber-200 text-sm text-amber-950">
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>Стовпчаста (гістограма)</strong> — найкраще підходить для порівняння кількості або значень різних об'єктів чи категорій.</li>
+            <li><strong>Секторна (кругова)</strong> — показує частку (відсоток) кожної складової від одного цілого (100%).</li>
+            <li><strong>Лінійна (графік)</strong> — наочно демонструє зміну величини з плином часу (динаміку за дні, місяці, роки).</li>
+          </ul>
+        </div>
+
+        <p class="text-sm sm:text-base text-gray-600 mb-6">
+          Прочитай три життєві ситуації семикласників та обери для кожної найкращий тип діаграми у Google Таблицях.
+        </p>
+
+        <div class="space-y-5" id="task2-scenarios">
+          <!-- Генерується через JS -->
+        </div>
+
+        <div id="feedback-2" class="hidden mt-6 p-4 rounded-2xl text-sm"></div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-end gap-3">
+          <button id="btn-check-2" onclick="checkTask2()" class="px-6 py-3 rounded-xl bg-gblue hover:bg-gblue-dark text-white font-semibold text-sm sm:text-base transition cursor-pointer">
+            Перевірити вибір
+          </button>
+          <button id="btn-next-2" onclick="goToScreen('screen-task-3')" class="hidden px-6 py-3 rounded-xl bg-gsheet hover:bg-gsheet-dark text-white font-semibold text-sm sm:text-base transition cursor-pointer">
+            Перейти до симулятора →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ЗАВДАННЯ 3: СИМУЛЯТОР GOOGLE ТАБЛИЦЬ ==================== -->
+    <section id="screen-task-3" class="hidden fade-in">
+      <div class="bg-white rounded-3xl border border-gray-200 shadow-sm p-5 sm:p-8">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-gray-100">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-gsheet">Завдання 3 з 4 • Практикум • Максимум 3 бали</span>
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">Симулятор Google Таблиць: Створи діаграму</h2>
+          </div>
+          <button onclick="toggleHint(3)" class="px-3.5 py-2 rounded-xl bg-gyellow-light hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+            <span>💡</span> Підказка з підручника
+          </button>
+        </div>
+
+        <div id="hint-3" class="hidden mb-5 p-4 rounded-2xl bg-gyellow-light border border-amber-200 text-sm text-amber-950">
+          <strong>Покрокова інструкція:</strong>
+          <ol class="list-decimal pl-5 mt-1 space-y-1">
+            <li>Виділи діапазон клітинок <strong>A1:B6</strong> (включаючи заголовки стовпців «День тижня» та «Кроки», але <em>без</em> рядка «Всього за тиждень», щоб підсумок не спотворив порівняння днів!).</li>
+            <li>Натисни у меню <strong>Вставити → Діаграма</strong> (або кнопку панелі інструментів).</li>
+            <li>У панелі <strong>Редактор діаграм</strong> обери тип <strong>Стовпчаста діаграма</strong> та введи заголовок: <code>Активність за тиждень</code>.</li>
+          </ol>
+        </div>
+
+        <!-- Технічне завдання для учня -->
+        <div class="bg-gblue-light/60 border border-blue-200 rounded-2xl p-4 mb-5 text-sm text-gray-800">
+          <p class="font-semibold text-gblue-dark mb-1">🎯 Завдання:</p>
+          <p>Оленка вела облік пройдених кроків за 5 навчальних днів. Побудуй діаграму для порівняння її активності по днях:</p>
+          <ul class="list-disc pl-5 mt-1.5 space-y-0.5 text-xs sm:text-sm text-gray-700">
+            <li><strong>Крок 1:</strong> Виділи правильний діапазон клітинок таблиці (підказка: чи потрібен рядок «Всього» для порівняння днів?).</li>
+            <li><strong>Крок 2:</strong> Натисни <strong>Вставити → Діаграма</strong>.</li>
+            <li><strong>Крок 3:</strong> Обери тип <strong>Стовпчаста</strong> та встанови назву діаграми <strong>«Активність за тиждень»</strong>.</li>
+          </ul>
+        </div>
+
+        <!-- ІМІТАЦІЯ ВІКНА GOOGLE ТАБЛИЦЬ -->
+        <div class="border border-gray-300 rounded-2xl overflow-hidden bg-white shadow-inner">
+          <!-- Верхній рядок меню Google Таблиць -->
+          <div class="bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-gsheet text-white flex items-center justify-center text-xs font-bold">田</span>
+              <span class="font-medium text-xs sm:text-sm text-gray-800">Фізична_активність_7клас.xlsx</span>
+            </div>
+            <!-- Панель меню -->
+            <div class="flex items-center gap-1 text-xs font-medium text-gray-700 relative">
+              <span class="px-2 py-1 rounded hover:bg-gray-200/70 cursor-default">Файл</span>
+              <span class="px-2 py-1 rounded hover:bg-gray-200/70 cursor-default">Редагувати</span>
+              <div class="relative">
+                <button
+                  id="sim-menu-insert"
+                  onclick="toggleInsertDropdown()"
+                  class="px-2.5 py-1 rounded bg-white border border-gray-300 hover:bg-gblue-light hover:border-gblue hover:text-gblue font-semibold transition cursor-pointer flex items-center gap-1"
+                >
+                  <span>Вставити</span>
+                  <span class="text-[10px]">▼</span>
+                </button>
+                <!-- Випадаюче меню Вставити -->
+                <div id="sim-insert-dropdown" class="hidden absolute left-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-20">
+                  <div class="px-3 py-1.5 text-gray-400 text-xs flex items-center justify-between">
+                    <span>Рядки / Стовпці</span>
+                  </div>
+                  <button
+                    onclick="insertChartAction()"
+                    class="w-full text-left px-3 py-2 text-xs sm:text-sm font-semibold text-gray-800 hover:bg-gblue-light hover:text-gblue flex items-center gap-2 cursor-pointer"
+                  >
+                    <span class="text-base">📊</span> Діаграма
+                  </button>
+                  <div class="px-3 py-1.5 text-gray-400 text-xs">Зображення</div>
+                </div>
+              </div>
+              <span class="hidden sm:inline px-2 py-1 rounded hover:bg-gray-200/70 cursor-default">Формат</span>
+              <span class="hidden sm:inline px-2 py-1 rounded hover:bg-gray-200/70 cursor-default">Дані</span>
+            </div>
+          </div>
+
+          <!-- Рядок формул (fx) -->
+          <div class="bg-white border-b border-gray-200 px-3 py-1.5 flex items-center gap-2 text-xs">
+            <div id="sim-range-box" class="font-mono font-semibold text-gray-700 bg-gray-100 px-2.5 py-0.5 rounded border border-gray-300 min-w-[72px] text-center">
+              A1
+            </div>
+            <span class="text-gray-400 font-serif italic font-bold">fx</span>
+            <div id="sim-formula-bar" class="font-mono text-gray-600 truncate">День тижня</div>
+            <div class="ml-auto flex gap-1.5">
+              <button onclick="quickSelectRange('A1:B6')" class="text-[11px] px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 cursor-pointer" title="Швидко виділити A1:B6">
+                Виділити A1:B6
+              </button>
+              <button onclick="quickSelectRange('A1:B7')" class="text-[11px] px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 cursor-pointer" title="Швидко виділити A1:B7">
+                Виділити A1:B7
+              </button>
+            </div>
+          </div>
+
+          <!-- Робоча область: Сітка клітинок + Полотно діаграми + Редактор -->
+          <div class="grid grid-cols-1 lg:grid-cols-12">
+            <!-- Ліва частина: Таблиця та жива діаграма -->
+            <div class="lg:col-span-8 p-3 sm:p-4 bg-[#F8F9FA] border-b lg:border-b-0 lg:border-r border-gray-200">
+              <p class="text-[11px] text-gray-500 mb-2">
+                💡 Натисни на початкову клітинку та потягни (або клікни по черзі на дві кутові клітинки), щоб виділити діапазон.
+              </p>
+
+              <!-- Таблиця даних -->
+              <div class="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-2xs mb-4">
+                <table class="w-full border-collapse text-xs sm:text-sm font-sans" id="sim-grid-table">
+                  <thead>
+                    <tr class="bg-gray-100 text-gray-600 font-semibold text-center">
+                      <th class="w-9 border-b border-r border-gray-300 py-1"></th>
+                      <th class="border-b border-r border-gray-300 py-1 w-1/2">A</th>
+                      <th class="border-b border-gray-300 py-1 w-1/2">B</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sim-grid-body">
+                    <!-- Заповнюється через JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Живе прев'ю створеної діаграми -->
+              <div id="sim-chart-canvas" class="hidden bg-white rounded-xl border-2 border-gblue shadow-md p-4 transition-all">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider text-gblue bg-gblue-light px-2 py-0.5 rounded">Попередній перегляд діаграми</span>
+                  <span id="sim-chart-range-label" class="text-xs font-mono text-gray-500">Діапазон: A1:B6</span>
+                </div>
+                <div id="sim-chart-render" class="w-full min-h-[210px] flex items-center justify-center">
+                  <!-- SVG діаграми генерується динамічно -->
+                </div>
+              </div>
+
+              <div id="sim-chart-placeholder" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-400 text-xs sm:text-sm">
+                Діаграму ще не створено. Виділи дані у таблиці вище та натисни <strong>«Вставити → Діаграма»</strong>.
+              </div>
+            </div>
+
+            <!-- Права частина: Панель "Редактор діаграм" -->
+            <div class="lg:col-span-4 bg-white p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-gray-200">
+                  <h3 class="font-bold text-sm text-gray-800 flex items-center gap-1.5">
+                    <span>⚙️</span> Редактор діаграм
+                  </h3>
+                  <span class="text-[11px] text-gray-400">Налаштування</span>
+                </div>
+
+                <div id="sim-editor-disabled" class="text-xs text-gray-400 py-8 text-center">
+                  Вставте діаграму, щоб відкрити параметри її редагування.
+                </div>
+
+                <div id="sim-editor-controls" class="hidden space-y-4">
+                  <!-- Вибір типу діаграми -->
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Тип діаграми</label>
+                    <select id="sim-chart-type" onchange="updateSimulatedChart()" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-gblue focus:outline-none">
+                      <option value="pie">Секторна (кругова) діаграма</option>
+                      <option value="column">Стовпчаста діаграма</option>
+                      <option value="line">Лінійна діаграма (графік)</option>
+                    </select>
+                  </div>
+
+                  <!-- Поле діапазону даних -->
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Діапазон даних</label>
+                    <input
+                      type="text"
+                      id="sim-editor-range"
+                      onchange="applyEditorRange()"
+                      class="w-full px-3 py-2 rounded-lg border border-gray-300 font-mono text-xs sm:text-sm focus:ring-2 focus:ring-gblue focus:outline-none"
+                    />
+                  </div>
+
+                  <!-- Заголовок діаграми -->
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Назва діаграми (Додатково)</label>
+                    <input
+                      type="text"
+                      id="sim-chart-title"
+                      value="Кроки за тиждень"
+                      oninput="updateSimulatedChart()"
+                      placeholder="Введи назву діаграми..."
+                      class="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs sm:text-sm focus:ring-2 focus:ring-gblue focus:outline-none"
+                    />
+                    <p class="text-[11px] text-gray-500 mt-1">Введи: <span class="font-semibold text-gray-700">Активність за тиждень</span></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-500">
+                Порада: Змінюй налаштування в редакторі та спостерігай, як миттєво оновлюється діаграма!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="feedback-3" class="hidden mt-6 p-4 rounded-2xl text-sm"></div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-end gap-3">
+          <button id="btn-check-3" onclick="checkTask3()" class="px-6 py-3 rounded-xl bg-gblue hover:bg-gblue-dark text-white font-semibold text-sm sm:text-base transition cursor-pointer">
+            Перевірити побудовану діаграму
+          </button>
+          <button id="btn-next-3" onclick="goToScreen('screen-task-4')" class="hidden px-6 py-3 rounded-xl bg-gsheet hover:bg-gsheet-dark text-white font-semibold text-sm sm:text-base transition cursor-pointer">
+            Фінальне завдання →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ЗАВДАННЯ 4: АЛГОРИТМ ТА БЛІЦ-ТЕСТ ==================== -->
+    <section id="screen-task-4" class="hidden fade-in">
+      <div class="bg-white rounded-3xl border border-gray-200 shadow-sm p-5 sm:p-8">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-6 border-b border-gray-100">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-600">Завдання 4 з 4 • Максимум 3 бали</span>
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">Алгоритм побудови та бліц-перевірка</h2>
+          </div>
+          <button onclick="toggleHint(4)" class="px-3.5 py-2 rounded-xl bg-gyellow-light hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+            <span>💡</span> Підказка з підручника
+          </button>
+        </div>
+
+        <div id="hint-4" class="hidden mb-6 p-4 rounded-2xl bg-gyellow-light border border-amber-200 text-sm text-amber-950">
+          <strong>Пам'ятай:</strong> Діаграма в Google Таблицях є <em>динамічною</em> — якщо змінити число в таблиці, діаграма оновиться автоматично. Перед вставкою діаграми обов'язково потрібно виділити потрібні дані.
+        </div>
+
+        <!-- Частина А: Впорядкування кроків алгоритму -->
+        <div class="mb-8">
+          <h3 class="font-bold text-base text-gray-800 mb-2">Частина А. Розстав кроки алгоритму створення діаграми по порядку:</h3>
+          <p class="text-xs sm:text-sm text-gray-500 mb-4">Використовуй кнопки зі стрілками <strong>↑</strong> та <strong>↓</strong>, щоб розташувати етапи у правильній послідовності (від 1 до 4).</p>
+
+          <div id="algorithm-list" class="space-y-2.5">
+            <!-- Генерується через JS -->
+          </div>
+        </div>
+
+        <!-- Частина Б: Правда чи міф -->
+        <div>
+          <h3 class="font-bold text-base text-gray-800 mb-3">Частина Б. Визнач, чи правильні ці твердження про Google Таблиці:</h3>
+          <div class="space-y-3" id="true-false-list">
+            <!-- Генерується через JS -->
+          </div>
+        </div>
+
+        <div id="feedback-4" class="hidden mt-6 p-4 rounded-2xl text-sm"></div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-end gap-3">
+          <button id="btn-check-4" onclick="checkTask4()" class="px-6 py-3 rounded-xl bg-gblue hover:bg-gblue-dark text-white font-semibold text-sm sm:text-base transition cursor-pointer">
+            Завершити та перевірити
+          </button>
+          <button id="btn-next-4" onclick="showResultsScreen()" class="hidden px-6 py-3 rounded-xl bg-gsheet hover:bg-gsheet-dark text-white font-semibold text-sm sm:text-base transition cursor-pointer">
+            Переглянути результат і сертифікат 🏆
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ЕКРАН 5: РЕЗУЛЬТАТИ ТА СЕРТИФІКАТ ==================== -->
+    <section id="screen-results" class="hidden fade-in max-w-3xl mx-auto">
+      <!-- Картка сертифіката -->
+      <div id="certificate-card" class="bg-white rounded-3xl border-2 border-gsheet shadow-md overflow-hidden mb-6">
+        <div class="h-3 w-full flex">
+          <div class="w-1/4 bg-gblue"></div>
+          <div class="w-1/4 bg-gred"></div>
+          <div class="w-1/4 bg-gyellow"></div>
+          <div class="w-1/4 bg-gsheet"></div>
+        </div>
+
+        <div class="p-6 sm:p-10 text-center relative">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gsheet-light text-gsheet text-3xl mb-4 shadow-xs">
+            🏆
+          </div>
+
+          <p class="text-xs font-bold uppercase tracking-widest text-gsheet-dark mb-1">Сертифікат про проходження інтерактивної вправи</p>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2" id="cert-student-name">Учень / Учениця</h2>
+          <p class="text-sm text-gray-600 max-w-lg mx-auto mb-6">
+            успішно опрацював(ла) навчальний модуль з інформатики для 7 класу за темою <strong>«Діаграми у електронних таблицях (Google Таблиці)»</strong>.
+          </p>
+
+          <!-- Велика оцінка 12-бальної шкали -->
+          <div class="inline-flex flex-col items-center justify-center px-8 py-4 rounded-2xl bg-gray-50 border border-gray-200 mb-6">
+            <span class="text-xs font-semibold text-gray-500 uppercase">Підсумкова оцінка</span>
+            <div class="flex items-baseline gap-1 mt-1">
+              <span id="cert-final-grade" class="text-4xl sm:text-5xl font-black text-gsheet">12</span>
+              <span class="text-lg font-bold text-gray-400">/ 12 балів</span>
+            </div>
+            <span id="cert-level-label" class="mt-1.5 text-xs font-bold px-3 py-0.5 rounded-full bg-gsheet-light text-gsheet-dark">
+              Високий рівень навчальних досягнень
+            </span>
+          </div>
+
+          <!-- Деталізація по завданнях -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left mb-6">
+            <div class="p-3 rounded-xl bg-gray-50 border border-gray-200">
+              <div class="text-[11px] text-gray-500">1. Будова діаграми</div>
+              <div class="font-bold text-sm text-gray-900 mt-0.5"><span id="res-t1">0</span> / 3 бали</div>
+            </div>
+            <div class="p-3 rounded-xl bg-gray-50 border border-gray-200">
+              <div class="text-[11px] text-gray-500">2. Типи діаграм</div>
+              <div class="font-bold text-sm text-gray-900 mt-0.5"><span id="res-t2">0</span> / 3 бали</div>
+            </div>
+            <div class="p-3 rounded-xl bg-gray-50 border border-gray-200">
+              <div class="text-[11px] text-gray-500">3. Симулятор Таблиць</div>
+              <div class="font-bold text-sm text-gray-900 mt-0.5"><span id="res-t3">0</span> / 3 бали</div>
+            </div>
+            <div class="p-3 rounded-xl bg-gray-50 border border-gray-200">
+              <div class="text-[11px] text-gray-500">4. Алгоритм і бліц</div>
+              <div class="font-bold text-sm text-gray-900 mt-0.5"><span id="res-t4">0</span> / 3 бали</div>
+            </div>
+          </div>
+
+          <!-- Аналіз помилок / Поради -->
+          <div id="results-review-box" class="text-left bg-gblue-light/50 border border-blue-200 rounded-2xl p-4 text-xs sm:text-sm text-gray-700 mb-4">
+            <!-- Генерується через JS -->
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] text-gray-400 pt-3 border-t border-gray-100">
+            <span>Дата виконання: <span id="cert-date"></span></span>
+            <span>Інформатика • 7 клас (НУШ)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Кнопки дій -->
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <button onclick="downloadCertificateImage()" class="px-5 py-3 rounded-xl bg-gblue hover:bg-gblue-dark text-white font-semibold text-sm flex items-center gap-2 shadow-xs transition cursor-pointer">
+          <span>🖼️</span> Завантажити сертифікат (PNG)
+        </button>
+        <button onclick="restartExercise()" class="px-5 py-3 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 font-semibold text-sm flex items-center gap-2 transition cursor-pointer">
+          <span>🔄</span> Пройти вправу ще раз
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ФУТЕР З ІНСТРУКЦІЄЮ ДЛЯ GITHUB PAGES ТА ЗАВАНТАЖЕННЯМ ФАЙЛУ -->
+  <footer class="bg-white border-t border-gray-200 mt-auto">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+      <div>
+        Навчальний ресурс з інформатики для 7 класу • Тема: «Діаграми у електронних таблицях» (за підручником І. Тріщук)
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openGithubModal()" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition cursor-pointer flex items-center gap-1.5">
+          <span>🚀</span> Опублікувати на GitHub Pages
+        </button>
+        <button onclick="downloadSelfHtml()" class="px-3 py-1.5 rounded-lg bg-gsheet-light hover:bg-gsheet-border text-gsheet-dark font-semibold transition cursor-pointer flex items-center gap-1.5">
+          <span>⬇️</span> Завантажити index.html
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- МОДАЛЬНЕ ВІКНО: ІНСТРУКЦІЯ ДЛЯ GITHUB PAGES -->
+  <div id="github-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-xl border border-gray-200 fade-in">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
+        <h3 class="font-bold text-lg text-gray-900 flex items-center gap-2">
+          <span>🌐</span> Як розмістити вправу на GitHub Pages
+        </h3>
+        <button onclick="closeGithubModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500 flex items-center justify-center cursor-pointer">✕</button>
+      </div>
+
+      <ol class="list-decimal pl-5 space-y-2.5 text-sm text-gray-700 mb-6">
+        <li>Натисни кнопку <strong>«Завантажити index.html»</strong>, щоб зберегти автономний файл вправи на свій комп'ютер.</li>
+        <li>Увійди у свій акаунт на <span class="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">github.com</span> та створи новий публічний репозиторій (наприклад, <span class="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">diagrams-7class</span>).</li>
+        <li>Завантаж файл <strong>index.html</strong> у корінь репозиторію (<em>Add file → Upload files → Commit changes</em>).</li>
+        <li>Перейди у вкладку <strong>Settings → Pages</strong>, у розділі <em>Branch</em> обери <strong>main</strong> та натисни <strong>Save</strong>.</li>
+        <li>Через 1 хвилину твоя інтерактивна вправа буде доступна за постійним посиланням для учнів!</li>
+      </ol>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="downloadSelfHtml()" class="px-4 py-2.5 rounded-xl bg-gsheet hover:bg-gsheet-dark text-white text-xs sm:text-sm font-semibold cursor-pointer">
+          ⬇️ Завантажити index.html
+        </button>
+        <button onclick="closeGithubModal()" class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs sm:text-sm font-semibold cursor-pointer">
+          Зрозуміло
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНЕ ПОВІДОМЛЕННЯ (ЗАМІСТЬ ALERT) -->
+  <div id="toast-box" class="hidden fixed bottom-5 right-5 z-50 max-w-sm bg-gray-900 text-white text-xs sm:text-sm px-4 py-3 rounded-xl shadow-lg fade-in"></div>
+
+  <!-- ==================== JAVASCRIPT ЛОГІКА ==================== -->
+  <script>
+    // Глобальний стан додатка
+    const state = {
+      studentName: '',
+      scores: { t1: 0, t2: 0, t3: 0, t4: 0 },
+      completed: { t1: false, t2: false, t3: false, t4: false },
+      mistakes: []
+    };
+
+    // Допоміжна функція для сповіщень (замість alert)
+    function showToast(message) {
+      const box = document.getElementById('toast-box');
+      box.textContent = message;
+      box.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        box.classList.add('hidden');
+      }, 3200);
+    }
+
+    // Початок вправи
+    function startExercise() {
+      const input = document.getElementById('student-name-input');
+      const err = document.getElementById('name-error');
+      const val = input.value.trim();
+      if (!val) {
+        err.classList.remove('hidden');
+        input.focus();
+        return;
+      }
+      err.classList.add('hidden');
+      state.studentName = val;
+      document.getElementById('header-student-name').textContent = val;
+      document.getElementById('header-stats').classList.remove('hidden');
+      document.getElementById('header-stats').classList.add('flex');
+      updateHeaderProgress(1);
+      goToScreen('screen-task-1');
+    }
+
+    // Навігація між екранами
+    function goToScreen(screenId) {
+      const screens = ['screen-welcome', 'screen-task-1', 'screen-task-2', 'screen-task-3', 'screen-task-4', 'screen-results'];
+      screens.forEach(id => document.getElementById(id).classList.add('hidden'));
+      document.getElementById(screenId).classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      const map = { 'screen-task-1': 1, 'screen-task-2': 2, 'screen-task-3': 3, 'screen-task-4': 4 };
+      if (map[screenId]) updateHeaderProgress(map[screenId]);
+    }
+
+    function updateHeaderProgress(currentStep) {
+      const total = state.scores.t1 + state.scores.t2 + state.scores.t3 + state.scores.t4;
+      document.getElementById('header-score').textContent = total;
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById(`step-dot-${i}`);
+        if (state.completed[`t${i}`]) {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-gsheet';
+        } else if (i === currentStep) {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-gblue ring-2 ring-blue-200';
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-gray-300';
+        }
+      }
+    }
+
+    function toggleHint(num) {
+      document.getElementById(`hint-${num}`).classList.toggle('hidden');
+    }
+
+    // ==================== ІНІЦІАЛІЗАЦІЯ ЗАВДАННЯ 1 ====================
+    const task1Items = [
+      { id: 1, color: 'bg-gblue text-white', answer: 'title' },
+      { id: 2, color: 'bg-gsheet text-white', answer: 'legend' },
+      { id: 3, color: 'bg-gred text-white', answer: 'series' },
+      { id: 4, color: 'bg-gyellow text-gray-900', answer: 'yaxis' },
+      { id: 5, color: 'bg-cyan-600 text-white', answer: 'xaxis' },
+      { id: 6, color: 'bg-purple-600 text-white', answer: 'plotarea' }
+    ];
+
+    const task1Options = [
+      { value: '', label: '— Обери елемент діаграми —' },
+      { value: 'title', label: 'Назва діаграми' },
+      { value: 'legend', label: 'Легенда' },
+      { value: 'series', label: 'Ряди даних (стовпці)' },
+      { value: 'xaxis', label: 'Вісь категорій (горизонтальна, X)' },
+      { value: 'yaxis', label: 'Вісь значень (вертикальна, Y)' },
+      { value: 'plotarea', label: 'Область побудови' }
+    ];
+
+    function initTask1() {
+      const container = document.getElementById('task1-selects');
+      container.innerHTML = task1Items.map(item => `
+        <div class="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-gray-200" id="t1-row-${item.id}">
+          <span class="w-7 h-7 rounded-full ${item.color} font-bold text-xs flex items-center justify-center shrink-0">
+            ${item.id}
+          </span>
+          <select id="t1-sel-${item.id}" class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-xs sm:text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gblue">
+            ${task1Options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('')}
+          </select>
+        </div>
+      `).join('');
+    }
+
+    function checkTask1() {
+      let correctCount = 0;
+      let allFilled = true;
+
+      task1Items.forEach(item => {
+        const val = document.getElementById(`t1-sel-${item.id}`).value;
+        if (!val) allFilled = false;
+      });
+
+      if (!allFilled) {
+        showToast('Обери назви для всіх 6 елементів діаграми!');
+        return;
+      }
+
+      task1Items.forEach(item => {
+        const sel = document.getElementById(`t1-sel-${item.id}`);
+        const row = document.getElementById(`t1-row-${item.id}`);
+        sel.disabled = true;
+        if (sel.value === item.answer) {
+          correctCount++;
+          row.classList.remove('border-gray-200', 'bg-gray-50');
+          row.classList.add('border-gsheet', 'bg-gsheet-light/60');
+        } else {
+          row.classList.remove('border-gray-200', 'bg-gray-50');
+          row.classList.add('border-gred', 'bg-gred-light/60');
+        }
+      });
+
+      // Нарахування до 3 балів (по 0.5 за кожен правильний елемент)
+      const earned = Math.round((correctCount / 6) * 3 * 2) / 2;
+      state.scores.t1 = earned;
+      state.completed.t1 = true;
+      updateHeaderProgress(1);
+
+      if (correctCount < 6) {
+        state.mistakes.push('Завдання 1 (Будова діаграми): зверни увагу на різницю між віссю категорій (X — підписи об’єктів знизу) та віссю значень (Y — шкала чисел зліва).');
+      }
+
+      const fb = document.getElementById('feedback-1');
+      fb.classList.remove('hidden');
+      fb.className = `mt-6 p-4 rounded-2xl text-sm border ${correctCount === 6 ? 'bg-gsheet-light border-gsheet-border text-gsheet-dark' : 'bg-amber-50 border-amber-200 text-amber-900'}`;
+      fb.innerHTML = `<strong>Результат завдання 1:</strong> Правильно визначено <strong>${correctCount} з 6</strong> елементів. Зараховано <strong>${earned} з 3 балів</strong>.`;
+
+      document.getElementById('btn-check-1').classList.add('hidden');
+      document.getElementById('btn-next-1').classList.remove('hidden');
+    }
+
+    // ==================== ІНІЦІАЛІЗАЦІЯ ЗАВДАННЯ 2 ====================
+    const task2Data = [
+      {
+        id: 's1',
+        title: 'Ситуація 1. Бюджет кишенькових грошей',
+        desc: 'Софія хоче показати, яку частку (у відсотках) від усіх її кишенькових витрат за місяць становлять витрати на проїзд, обіди, канцтовари та розваги.',
+        correct: 'pie',
+        explanation: 'Секторна (кругова) діаграма ідеально демонструє частки кожного елемента в одному цілому (100%).'
+      },
+      {
+        id: 's2',
+        title: 'Ситуація 2. Щоденник погоди юного дослідника',
+        desc: 'Артем щодня о 12:00 протягом двох тижнів вимірював температуру повітря та хоче наочно показати динаміку її потепління й похолодання з часом.',
+        correct: 'line',
+        explanation: 'Лінійна діаграма (графік) найкраще відображає неперервну зміну величини в часі.'
+      },
+      {
+        id: 's3',
+        title: 'Ситуація 3. Книжковий марафон 7-А класу',
+        desc: 'Бібліотекарка хоче порівняти кількість прочитаних за семестр книг між п’ятьма учнями класу: Олегом, Марією, Денисом, Іриною та Тарасом.',
+        correct: 'column',
+        explanation: 'Стовпчаста діаграма найзручніша для порівняння числових показників різних об’єктів (учнів).'
+      }
+    ];
+
+    const chartTypeCards = [
+      { value: 'column', name: 'Стовпчаста', icon: '📊' },
+      { value: 'pie', name: 'Секторна (кругова)', icon: '🥧' },
+      { value: 'line', name: 'Лінійна (графік)', icon: '📈' }
+    ];
+
+    const task2Selected = {};
+
+    function initTask2() {
+      const container = document.getElementById('task2-scenarios');
+      container.innerHTML = task2Data.map(item => `
+        <div class="p-4 sm:p-5 rounded-2xl bg-gray-50 border border-gray-200" id="t2-card-${item.id}">
+          <h3 class="font-bold text-sm sm:text-base text-gray-900 mb-1">${item.title}</h3>
+          <p class="text-xs sm:text-sm text-gray-600 mb-3.5">${item.desc}</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            ${chartTypeCards.map(opt => `
+              <button
+                type="button"
+                onclick="selectTask2Option('${item.id}', '${opt.value}')"
+                id="t2-btn-${item.id}-${opt.value}"
+                class="t2-opt-${item.id} p-3 rounded-xl bg-white border border-gray-300 hover:border-gblue text-left flex items-center gap-2.5 transition cursor-pointer"
+              >
+                <span class="text-xl">${opt.icon}</span>
+                <span class="text-xs sm:text-sm font-semibold text-gray-800">${opt.name}</span>
+              </button>
+            `).join('')}
+          </div>
+          <div id="t2-exp-${item.id}" class="hidden mt-3 text-xs font-medium"></div>
+        </div>
+      `).join('');
+    }
+
+    function selectTask2Option(scenarioId, val) {
+      if (state.completed.t2) return;
+      task2Selected[scenarioId] = val;
+      document.querySelectorAll(`.t2-opt-${scenarioId}`).forEach(btn => {
+        btn.classList.remove('border-gblue', 'bg-gblue-light', 'ring-2', 'ring-blue-200');
+        btn.classList.add('border-gray-300', 'bg-white');
+      });
+      const activeBtn = document.getElementById(`t2-btn-${scenarioId}-${val}`);
+      activeBtn.classList.remove('border-gray-300', 'bg-white');
+      activeBtn.classList.add('border-gblue', 'bg-gblue-light', 'ring-2', 'ring-blue-200');
+    }
+
+    function checkTask2() {
+      if (Object.keys(task2Selected).length < 3) {
+        showToast('Обери тип діаграми для кожної з трьох ситуацій!');
+        return;
+      }
+
+      let earned = 0;
+      task2Data.forEach(item => {
+        const chosen = task2Selected[item.id];
+        const card = document.getElementById(`t2-card-${item.id}`);
+        const exp = document.getElementById(`t2-exp-${item.id}`);
+        exp.classList.remove('hidden');
+
+        if (chosen === item.correct) {
+          earned += 1;
+          card.classList.remove('border-gray-200', 'bg-gray-50');
+          card.classList.add('border-gsheet', 'bg-gsheet-light/40');
+          exp.className = 'mt-3 text-xs font-medium text-gsheet-dark';
+          exp.textContent = `✅ Правильно! ${item.explanation}`;
+        } else {
+          card.classList.remove('border-gray-200', 'bg-gray-50');
+          card.classList.add('border-gred', 'bg-gred-light/40');
+          exp.className = 'mt-3 text-xs font-medium text-gred';
+          exp.textContent = `❌ Не зовсім. ${item.explanation}`;
+        }
+      });
+
+      state.scores.t2 = earned;
+      state.completed.t2 = true;
+      updateHeaderProgress(2);
+
+      if (earned < 3) {
+        state.mistakes.push('Завдання 2 (Типи діаграм): запам’ятай — частки від цілого показує секторна діаграма, динаміку в часі — лінійна, а порівняння значень — стовпчаста.');
+      }
+
+      const fb = document.getElementById('feedback-2');
+      fb.classList.remove('hidden');
+      fb.className = `mt-6 p-4 rounded-2xl text-sm border ${earned === 3 ? 'bg-gsheet-light border-gsheet-border text-gsheet-dark' : 'bg-amber-50 border-amber-200 text-amber-900'}`;
+      fb.innerHTML = `<strong>Результат завдання 2:</strong> Зараховано <strong>${earned} з 3 балів</strong>.`;
+
+      document.getElementById('btn-check-2').classList.add('hidden');
+      document.getElementById('btn-next-2').classList.remove('hidden');
+    }
+
+    // ==================== ІНІЦІАЛІЗАЦІЯ ЗАВДАННЯ 3 (СИМУЛЯТОР GOOGLE ТАБЛИЦЬ) ====================
+    const sheetRows = [
+      { row: 1, A: 'День тижня', B: 'Кроки', isHeader: true },
+      { row: 2, A: 'Понеділок', B: 8500 },
+      { row: 3, A: 'Вівторок', B: 10200 },
+      { row: 4, A: 'Середа', B: 6400 },
+      { row: 5, A: 'Четвер', B: 9100 },
+      { row: 6, A: 'П’ятниця', B: 11500 },
+      { row: 7, A: 'Всього за тиждень', B: 45700, isTotal: true }
+    ];
+
+    const simState = {
+      startCell: { col: 0, row: 1 }, // A1
+      endCell: { col: 0, row: 1 },   // A1
+      isDragging: false,
+      clickAnchor: null,
+      chartInserted: false
+    };
+
+    function initTask3() {
+      const tbody = document.getElementById('sim-grid-body');
+      tbody.innerHTML = sheetRows.map(r => `
+        <tr class="${r.isHeader ? 'font-bold bg-gray-50' : ''} ${r.isTotal ? 'font-semibold bg-amber-50/40' : ''}">
+          <td class="bg-gray-100 border-b border-r border-gray-300 text-center text-gray-500 font-medium py-1.5 select-none">${r.row}</td>
+          <td
+            data-col="0" data-row="${r.row}"
+            onmousedown="handleCellMouseDown(0, ${r.row})"
+            onmouseover="handleCellMouseOver(0, ${r.row})"
+            onclick="handleCellClick(0, ${r.row})"
+            class="sheet-cell border-b border-r border-gray-300 px-3 py-1.5 cursor-cell text-gray-800"
+          >${r.A}</td>
+          <td
+            data-col="1" data-row="${r.row}"
+            onmousedown="handleCellMouseDown(1, ${r.row})"
+            onmouseover="handleCellMouseOver(1, ${r.row})"
+            onclick="handleCellClick(1, ${r.row})"
+            class="sheet-cell border-b border-gray-300 px-3 py-1.5 cursor-cell text-right font-mono text-gray-800"
+          >${r.B}</td>
+        </tr>
+      `).join('');
+
+      window.addEventListener('mouseup', () => {
+        simState.isDragging = false;
+      });
+
+      renderSelectionHighlight();
+    }
+
+    function handleCellMouseDown(col, row) {
+      simState.isDragging = true;
+      simState.startCell = { col, row };
+      simState.endCell = { col, row };
+      renderSelectionHighlight();
+    }
+
+    function handleCellMouseOver(col, row) {
+      if (!simState.isDragging) return;
+      simState.endCell = { col, row };
+      renderSelectionHighlight();
+    }
+
+    // Підтримка виділення двома кліками для сенсорних екранів
+    function handleCellClick(col, row) {
+      if (!simState.clickAnchor) {
+        simState.clickAnchor = { col, row };
+        simState.startCell = { col, row };
+        simState.endCell = { col, row };
+      } else {
+        simState.endCell = { col, row };
+        simState.clickAnchor = null;
+      }
+      renderSelectionHighlight();
+    }
+
+    function quickSelectRange(rangeStr) {
+      if (rangeStr === 'A1:B6') {
+        simState.startCell = { col: 0, row: 1 };
+        simState.endCell = { col: 1, row: 6 };
+      } else if (rangeStr === 'A1:B7') {
+        simState.startCell = { col: 0, row: 1 };
+        simState.endCell = { col: 1, row: 7 };
+      }
+      simState.clickAnchor = null;
+      renderSelectionHighlight();
+      if (simState.chartInserted) {
+        document.getElementById('sim-editor-range').value = getSelectedRangeString();
+        updateSimulatedChart();
+      }
+    }
+
+    function getNormalizedSelection() {
+      const minCol = Math.min(simState.startCell.col, simState.endCell.col);
+      const maxCol = Math.max(simState.startCell.col, simState.endCell.col);
+      const minRow = Math.min(simState.startCell.row, simState.endCell.row);
+      const maxRow = Math.max(simState.startCell.row, simState.endCell.row);
+      return { minCol, maxCol, minRow, maxRow };
+    }
+
+    function getSelectedRangeString() {
+      const { minCol, maxCol, minRow, maxRow } = getNormalizedSelection();
+      const colNames = ['A', 'B'];
+      const startRef = `${colNames[minCol]}${minRow}`;
+      const endRef = `${colNames[maxCol]}${maxRow}`;
+      return startRef === endRef ? startRef : `${startRef}:${endRef}`;
+    }
+
+    function renderSelectionHighlight() {
+      const { minCol, maxCol, minRow, maxRow } = getNormalizedSelection();
+      document.querySelectorAll('.sheet-cell').forEach(cell => {
+        const c = parseInt(cell.dataset.col, 10);
+        const r = parseInt(cell.dataset.row, 10);
+        cell.classList.remove('selected', 'active-corner');
+        if (c >= minCol && c <= maxCol && r >= minRow && r <= maxRow) {
+          cell.classList.add('selected');
+          if (c === maxCol && r === maxRow) {
+            cell.classList.add('active-corner');
+          }
+        }
+      });
+
+      const rangeStr = getSelectedRangeString();
+      document.getElementById('sim-range-box').textContent = rangeStr;
+
+      // Оновлюємо рядок формул
+      const firstRowObj = sheetRows.find(item => item.row === minRow);
+      if (firstRowObj) {
+        document.getElementById('sim-formula-bar').textContent = minCol === 0 ? firstRowObj.A : firstRowObj.B;
+      }
+
+      if (simState.chartInserted) {
+        document.getElementById('sim-editor-range').value = rangeStr;
+        updateSimulatedChart();
+      }
+    }
+
+    function toggleInsertDropdown() {
+      document.getElementById('sim-insert-dropdown').classList.toggle('hidden');
+    }
+
+    function insertChartAction() {
+      document.getElementById('sim-insert-dropdown').classList.add('hidden');
+      const rangeStr = getSelectedRangeString();
+      if (!rangeStr.includes(':')) {
+        showToast('Спочатку виділи діапазон клітинок (наприклад, A1:B6) у таблиці!');
+        return;
+      }
+
+      simState.chartInserted = true;
+      document.getElementById('sim-chart-placeholder').classList.add('hidden');
+      document.getElementById('sim-chart-canvas').classList.remove('hidden');
+      document.getElementById('sim-editor-disabled').classList.add('hidden');
+      document.getElementById('sim-editor-controls').classList.remove('hidden');
+      document.getElementById('sim-editor-range').value = rangeStr;
+
+      updateSimulatedChart();
+      showToast('Діаграму вставлено! Налаштуй її у панелі «Редактор діаграм».');
+    }
+
+    function applyEditorRange() {
+      const val = document.getElementById('sim-editor-range').value.trim().toUpperCase();
+      const match = val.match(/^([AB])([1-7]):([AB])([1-7])$/);
+      if (match) {
+        const colMap = { A: 0, B: 1 };
+        simState.startCell = { col: colMap[match[1]], row: parseInt(match[2], 10) };
+        simState.endCell = { col: colMap[match[3]], row: parseInt(match[4], 10) };
+        renderSelectionHighlight();
+      } else {
+        showToast('Введи коректний діапазон, наприклад A1:B6');
+      }
+    }
+
+    function updateSimulatedChart() {
+      if (!simState.chartInserted) return;
+      const rangeStr = getSelectedRangeString();
+      document.getElementById('sim-chart-range-label').textContent = `Діапазон: ${rangeStr}`;
+
+      const { minCol, maxCol, minRow, maxRow } = getNormalizedSelection();
+      const type = document.getElementById('sim-chart-type').value;
+      const title = document.getElementById('sim-chart-title').value.trim() || 'Діаграма без назви';
+      const renderBox = document.getElementById('sim-chart-render');
+
+      // Збираємо дані із виділеного діапазону
+      const dataPoints = [];
+      for (let r = minRow; r <= maxRow; r++) {
+        const rowData = sheetRows.find(item => item.row === r);
+        if (!rowData || rowData.isHeader) continue;
+        dataPoints.push({
+          label: rowData.A,
+          value: Number(rowData.B) || 0
+        });
+      }
+
+      if (minCol === maxCol || dataPoints.length === 0) {
+        renderBox.innerHTML = `<div class="text-xs text-gred text-center py-6">Недостатньо даних для побудови. Виділи два стовпці (категорії та значення), наприклад <strong>A1:B6</strong>.</div>`;
+        return;
+      }
+
+      const maxVal = Math.max(...dataPoints.map(d => d.value), 1);
+      const colors = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#FF6D01', '#46BDC6'];
+
+      if (type === 'column') {
+        const width = 440;
+        const height = 210;
+        const barAreaW = 340;
+        const step = barAreaW / dataPoints.length;
+        const barW = Math.min(38, step * 0.6);
+
+        const barsSvg = dataPoints.map((d, idx) => {
+          const barH = Math.round((d.value / maxVal) * 120);
+          const x = 65 + idx * step + (step - barW) / 2;
+          const y = 165 - barH;
+          return `
+            <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="#1A73E8"/>
+            <text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#3C4043">${d.value}</text>
+            <text x="${x + barW / 2}" y="182" text-anchor="middle" font-size="9.5" fill="#5F6368">${d.label.slice(0, 8)}</text>
+          `;
+        }).join('');
+
+        renderBox.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" class="w-full max-w-md h-auto">
+            <text x="${width / 2}" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#202124">${escapeHtml(title)}</text>
+            <line x1="55" y1="165" x2="415" y2="165" stroke="#9AA0A6" stroke-width="1.2"/>
+            <line x1="55" y1="40" x2="55" y2="165" stroke="#9AA0A6" stroke-width="1.2"/>
+            ${barsSvg}
+          </svg>
+        `;
+      } else if (type === 'line') {
+        const width = 440;
+        const height = 210;
+        const areaW = 330;
+        const step = dataPoints.length > 1 ? areaW / (dataPoints.length - 1) : areaW;
+
+        const pts = dataPoints.map((d, idx) => {
+          const x = 65 + idx * step;
+          const y = 160 - Math.round((d.value / maxVal) * 110);
+          return { x, y, label: d.label, value: d.value };
+        });
+
+        const polyPoints = pts.map(p => `${p.x},${p.y}`).join(' ');
+        const dotsSvg = pts.map(p => `
+          <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#0F9D58" stroke="#fff" stroke-width="1.5"/>
+          <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#3C4043">${p.value}</text>
+          <text x="${p.x}" y="182" text-anchor="middle" font-size="9.5" fill="#5F6368">${p.label.slice(0, 8)}</text>
+        `).join('');
+
+        renderBox.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" class="w-full max-w-md h-auto">
+            <text x="${width / 2}" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#202124">${escapeHtml(title)}</text>
+            <line x1="55" y1="165" x2="415" y2="165" stroke="#9AA0A6" stroke-width="1.2"/>
+            <line x1="55" y1="40" x2="55" y2="165" stroke="#9AA0A6" stroke-width="1.2"/>
+            <polyline fill="none" stroke="#0F9D58" stroke-width="2.5" points="${polyPoints}"/>
+            ${dotsSvg}
+          </svg>
+        `;
+      } else if (type === 'pie') {
+        const total = dataPoints.reduce((acc, d) => acc + d.value, 0) || 1;
+        let currentAngle = 0;
+        const cx = 135, cy = 112, r = 62;
+
+        const slices = dataPoints.map((d, idx) => {
+          const sliceAngle = (d.value / total) * Math.PI * 2;
+          const x1 = cx + r * Math.cos(currentAngle);
+          const y1 = cy + r * Math.sin(currentAngle);
+          const x2 = cx + r * Math.cos(currentAngle + sliceAngle);
+          const y2 = cy + r * Math.sin(currentAngle + sliceAngle);
+          const largeArc = sliceAngle > Math.PI ? 1 : 0;
+          const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+          currentAngle += sliceAngle;
+          return `<path d="${pathData}" fill="${colors[idx % colors.length]}" stroke="#fff" stroke-width="1.5"/>`;
+        }).join('');
+
+        const legend = dataPoints.map((d, idx) => `
+          <rect x="235" y="${52 + idx * 20}" width="10" height="10" rx="2" fill="${colors[idx % colors.length]}"/>
+          <text x="251" y="${61 + idx * 20}" font-size="10" fill="#3C4043">${d.label} (${Math.round((d.value / total) * 100)}%)</text>
+        `).join('');
+
+        renderBox.innerHTML = `
+          <svg viewBox="0 0 440 210" class="w-full max-w-md h-auto">
+            <text x="220" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#202124">${escapeHtml(title)}</text>
+            ${slices}
+            ${legend}
+          </svg>
+        `;
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function checkTask3() {
+      if (!simState.chartInserted) {
+        showToast('Спочатку встав діаграму через меню «Вставити → Діаграма»!');
+        return;
+      }
+
+      const rangeStr = getSelectedRangeString();
+      const type = document.getElementById('sim-chart-type').value;
+      const title = document.getElementById('sim-chart-title').value.trim().toLowerCase();
+
+      let earned = 0;
+      const notes = [];
+
+      // 1 бал за правильний діапазон A1:B6 (без підсумкового рядка 7)
+      if (rangeStr === 'A1:B6' || rangeStr === 'A2:B6') {
+        earned += 1;
+        notes.push('✅ Діапазон даних виділено правильно (без підсумкового рядка «Всього»).');
+      } else {
+        notes.push(`❌ Діапазон виділено як ${rangeStr}. Потрібно було виділити A1:B6, щоб підсумковий рядок «Всього» не спотворив порівняння днів.`);
+      }
+
+      // 1 бал за тип діаграми "стовпчаста"
+      if (type === 'column') {
+        earned += 1;
+        notes.push('✅ Обрано оптимальний тип — стовпчаста діаграма.');
+      } else {
+        notes.push('❌ Для порівняння кроків за окремі дні варто було обрати «Стовпчасту діаграму».');
+      }
+
+      // 1 бал за правильний заголовок
+      if (title.includes('активність за тиждень')) {
+        earned += 1;
+        notes.push('✅ Заголовок діаграми налаштовано правильно.');
+      } else {
+        notes.push('❌ У редакторі діаграм потрібно було вказати назву «Активність за тиждень».');
+      }
+
+      state.scores.t3 = earned;
+      state.completed.t3 = true;
+      updateHeaderProgress(3);
+
+      if (earned < 3) {
+        state.mistakes.push('Завдання 3 (Практикум у Google Таблицях): під час виділення даних для діаграми не включай рядок «Всього», бо загальна сума буде у кілька разів більшою за окремі дні.');
+      }
+
+      const fb = document.getElementById('feedback-3');
+      fb.classList.remove('hidden');
+      fb.className = `mt-6 p-4 rounded-2xl text-sm border ${earned === 3 ? 'bg-gsheet-light border-gsheet-border text-gsheet-dark' : 'bg-amber-50 border-amber-200 text-amber-900'}`;
+      fb.innerHTML = `
+        <div class="font-bold mb-1.5">Результат практикуму: ${earned} з 3 балів</div>
+        <ul class="space-y-1 text-xs sm:text-sm">${notes.map(n => `<li>${n}</li>`).join('')}</ul>
+      `;
+
+      document.getElementById('btn-check-3').classList.add('hidden');
+      document.getElementById('btn-next-3').classList.remove('hidden');
+    }
+
+    // ==================== ІНІЦІАЛІЗАЦІЯ ЗАВДАННЯ 4 ====================
+    let algoSteps = [
+      { id: 3, text: 'У меню обрати команду «Вставити → Діаграма»' },
+      { id: 1, text: 'Увести та перевірити числові й текстові дані в клітинках таблиці' },
+      { id: 4, text: 'У панелі «Редактор діаграм» налаштувати тип, заголовок та легенду' },
+      { id: 2, text: 'Виділити діапазон клітинок із даними для побудови' }
+    ];
+
+    const tfQuestions = [
+      {
+        id: 'tf1',
+        text: 'Якщо змінити числове значення у клітинці таблиці, побудована діаграма оновиться автоматично.',
+        correct: true
+      },
+      {
+        id: 'tf2',
+        text: 'Після створення діаграми в Google Таблицях змінити її тип (наприклад, зі стовпчастої на кругову) вже неможливо.',
+        correct: false
+      }
+    ];
+
+    const tfAnswers = {};
+
+    function initTask4() {
+      renderAlgoList();
+      const tfContainer = document.getElementById('true-false-list');
+      tfContainer.innerHTML = tfQuestions.map(q => `
+        <div class="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3" id="tf-row-${q.id}">
+          <p class="text-xs sm:text-sm text-gray-800 font-medium">${q.text}</p>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="selectTF('${q.id}', true)" id="tf-btn-${q.id}-true" class="tf-btn-${q.id} px-4 py-2 rounded-xl bg-white border border-gray-300 text-xs font-bold text-gray-700 hover:border-gsheet cursor-pointer transition">
+              Правда
+            </button>
+            <button type="button" onclick="selectTF('${q.id}', false)" id="tf-btn-${q.id}-false" class="tf-btn-${q.id} px-4 py-2 rounded-xl bg-white border border-gray-300 text-xs font-bold text-gray-700 hover:border-gred cursor-pointer transition">
+              Міф
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAlgoList() {
+      const container = document.getElementById('algorithm-list');
+      container.innerHTML = algoSteps.map((step, index) => `
+        <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200" id="algo-item-${step.id}">
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-lg bg-gblue-light text-gblue font-bold text-xs flex items-center justify-center shrink-0">
+              ${index + 1}
+            </span>
+            <span class="text-xs sm:text-sm font-medium text-gray-800">${step.text}</span>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" onclick="moveAlgoStep(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="w-8 h-8 rounded-lg bg-white border border-gray-300 hover:bg-gray-100 disabled:opacity-30 text-gray-700 font-bold text-sm cursor-pointer" title="Перемістити вгору">↑</button>
+            <button type="button" onclick="moveAlgoStep(${index}, 1)" ${index === algoSteps.length - 1 ? 'disabled' : ''} class="w-8 h-8 rounded-lg bg-white border border-gray-300 hover:bg-gray-100 disabled:opacity-30 text-gray-700 font-bold text-sm cursor-pointer" title="Перемістити вниз">↓</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function moveAlgoStep(index, dir) {
+      if (state.completed.t4) return;
+      const newIndex = index + dir;
+      if (newIndex < 0 || newIndex >= algoSteps.length) return;
+      const temp = algoSteps[index];
+      algoSteps[index] = algoSteps[newIndex];
+      algoSteps[newIndex] = temp;
+      renderAlgoList();
+    }
+
+    function selectTF(id, val) {
+      if (state.completed.t4) return;
+      tfAnswers[id] = val;
+      document.querySelectorAll(`.tf-btn-${id}`).forEach(b => {
+        b.classList.remove('bg-gblue', 'text-white', 'border-gblue');
+        b.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+      });
+      const active = document.getElementById(`tf-btn-${id}-${val}`);
+      active.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+      active.classList.add('bg-gblue', 'text-white', 'border-gblue');
+    }
+
+    function checkTask4() {
+      if (Object.keys(tfAnswers).length < 2) {
+        showToast('Дай відповідь «Правда» або «Міф» на обидва твердження у Частині Б!');
+        return;
+      }
+
+      // Перевірка алгоритму (1.5 бали)
+      let algoCorrect = true;
+      algoSteps.forEach((step, idx) => {
+        const el = document.getElementById(`algo-item-${step.id}`);
+        if (step.id === idx + 1) {
+          el.classList.add('border-gsheet', 'bg-gsheet-light/50');
+        } else {
+          algoCorrect = false;
+          el.classList.add('border-gred', 'bg-gred-light/50');
+        }
+      });
+
+      let earned = algoCorrect ? 1.5 : 0;
+
+      // Перевірка бліц-питань (по 0.75 бала за кожне)
+      tfQuestions.forEach(q => {
+        const row = document.getElementById(`tf-row-${q.id}`);
+        if (tfAnswers[q.id] === q.correct) {
+          earned += 0.75;
+          row.classList.add('border-gsheet', 'bg-gsheet-light/50');
+        } else {
+          row.classList.add('border-gred', 'bg-gred-light/50');
+        }
+      });
+
+      earned = Math.round(earned * 2) / 2;
+      state.scores.t4 = earned;
+      state.completed.t4 = true;
+      updateHeaderProgress(4);
+
+      if (earned < 3) {
+        state.mistakes.push('Завдання 4 (Алгоритм та властивості діаграм): спочатку готуємо дані в таблиці, потім виділяємо діапазон, вставляємо діаграму та налаштовуємо її в редакторі.');
+      }
+
+      const fb = document.getElementById('feedback-4');
+      fb.classList.remove('hidden');
+      fb.className = `mt-6 p-4 rounded-2xl text-sm border ${earned === 3 ? 'bg-gsheet-light border-gsheet-border text-gsheet-dark' : 'bg-amber-50 border-amber-200 text-amber-900'}`;
+      fb.innerHTML = `<strong>Результат завдання 4:</strong> Зараховано <strong>${earned} з 3 балів</strong>.`;
+
+      document.getElementById('btn-check-4').classList.add('hidden');
+      document.getElementById('btn-next-4').classList.remove('hidden');
+    }
+
+    // ==================== ЕКРАН РЕЗУЛЬТАТІВ ТА ГЕНЕРАЦІЯ PNG-СЕРТИФІКАТА ====================
+    function showResultsScreen() {
+      const totalRaw = state.scores.t1 + state.scores.t2 + state.scores.t3 + state.scores.t4;
+      const finalGrade = Math.max(1, Math.round(totalRaw));
+
+      document.getElementById('cert-student-name').textContent = state.studentName;
+      document.getElementById('cert-final-grade').textContent = finalGrade;
+      document.getElementById('res-t1').textContent = state.scores.t1;
+      document.getElementById('res-t2').textContent = state.scores.t2;
+      document.getElementById('res-t3').textContent = state.scores.t3;
+      document.getElementById('res-t4').textContent = state.scores.t4;
+
+      const today = new Date();
+      document.getElementById('cert-date').textContent = today.toLocaleDateString('uk-UA');
+
+      const badge = document.getElementById('cert-level-label');
+      if (finalGrade >= 10) {
+        badge.textContent = 'Високий рівень навчальних досягнень';
+        badge.className = 'mt-1.5 text-xs font-bold px-3 py-0.5 rounded-full bg-gsheet-light text-gsheet-dark';
+      } else if (finalGrade >= 7) {
+        badge.textContent = 'Достатній рівень навчальних досягнень';
+        badge.className = 'mt-1.5 text-xs font-bold px-3 py-0.5 rounded-full bg-gblue-light text-gblue-dark';
+      } else {
+        badge.textContent = 'Середній рівень • Рекомендуємо повторити тему';
+        badge.className = 'mt-1.5 text-xs font-bold px-3 py-0.5 rounded-full bg-gyellow-light text-amber-900';
+      }
+
+      const reviewBox = document.getElementById('results-review-box');
+      if (state.mistakes.length === 0) {
+        reviewBox.innerHTML = '<strong>🌟 Бездоганна робота!</strong> Ти не припустився(лася) жодної помилки й чудово володієш навичками побудови діаграм у Google Таблицях.';
+      } else {
+        reviewBox.innerHTML = `
+          <div class="font-bold text-gray-900 mb-1">📌 На що звернути увагу (розбір помилок):</div>
+          <ul class="list-disc pl-5 space-y-1">${state.mistakes.map(m => `<li>${m}</li>`).join('')}</ul>
+        `;
+      }
+
+      goToScreen('screen-results');
+    }
+
+    // Малювання та завантаження сертифіката як зображення PNG через HTML5 Canvas
+    function downloadCertificateImage() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 900;
+      canvas.height = 560;
+      const ctx = canvas.getContext('2d');
+
+      // Фон
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, 900, 560);
+
+      // Рамка
+      ctx.strokeStyle = '#0F9D58';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(20, 20, 860, 520);
+
+      // Верхня кольорова смуга Google
+      ctx.fillStyle = '#1A73E8'; ctx.fillRect(25, 25, 212, 10);
+      ctx.fillStyle = '#DB4437'; ctx.fillRect(237, 25, 213, 10);
+      ctx.fillStyle = '#F4B400'; ctx.fillRect(450, 25, 213, 10);
+      ctx.fillStyle = '#0F9D58'; ctx.fillRect(663, 25, 212, 10);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#0B8043';
+      ctx.font = 'bold 18px Inter, sans-serif';
+      ctx.fillText('СЕРТИФІКАТ ПРО ВИКОНАННЯ ІНТЕРАКТИВНОЇ ВПРАВИ', 450, 95);
+
+      ctx.fillStyle = '#202124';
+      ctx.font = 'bold 36px Inter, sans-serif';
+      ctx.fillText(state.studentName, 450, 160);
+
+      ctx.fillStyle = '#5F6368';
+      ctx.font = '18px Inter, sans-serif';
+      ctx.fillText('успішно пройшов(ла) навчальний тренажер з інформатики (7 клас)', 450, 205);
+      ctx.fillStyle = '#202124';
+      ctx.font = 'bold 20px Inter, sans-serif';
+      ctx.fillText('«Діаграми у електронних таблицях (Google Таблиці)»', 450, 238);
+
+      // Плашка з оцінкою
+      ctx.fillStyle = '#E6F4EA';
+      ctx.fillRect(300, 275, 300, 110);
+      ctx.strokeStyle = '#CEEAD6';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(300, 275, 300, 110);
+
+      const finalGrade = Math.max(1, Math.round(state.scores.t1 + state.scores.t2 + state.scores.t3 + state.scores.t4));
+      ctx.fillStyle = '#0F9D58';
+      ctx.font = 'bold 48px Inter, sans-serif';
+      ctx.fillText(`${finalGrade} / 12 балів`, 450, 342);
+
+      ctx.fillStyle = '#3C4043';
+      ctx.font = '15px Inter, sans-serif';
+      ctx.fillText(`Завдання 1: ${state.scores.t1}/3  •  Завдання 2: ${state.scores.t2}/3  •  Завдання 3: ${state.scores.t3}/3  •  Завдання 4: ${state.scores.t4}/3`, 450, 435);
+
+      ctx.fillStyle = '#80868B';
+      ctx.font = '14px Inter, sans-serif';
+      ctx.fillText(`Дата: ${new Date().toLocaleDateString('uk-UA')}   |   Інформатика 7 клас • НУШ`, 450, 495);
+
+      const link = document.createElement('a');
+      link.download = `Сертифікат_Діаграми_${state.studentName.replace(/\s+/g, '_')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('Сертифікат збережено у форматі PNG!');
+    }
+
+    function restartExercise() {
+      state.scores = { t1: 0, t2: 0, t3: 0, t4: 0 };
+      state.completed = { t1: false, t2: false, t3: false, t4: false };
+      state.mistakes = [];
+      simState.chartInserted = false;
+      simState.startCell = { col: 0, row: 1 };
+      simState.endCell = { col: 0, row: 1 };
+
+      // Скидання UI елементів
+      ['feedback-1', 'feedback-2', 'feedback-3', 'feedback-4'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      ['btn-check-1', 'btn-check-2', 'btn-check-3', 'btn-check-4'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+      ['btn-next-1', 'btn-next-2', 'btn-next-3', 'btn-next-4'].forEach(id => document.getElementById(id).classList.add('hidden'));
+
+      document.getElementById('sim-chart-placeholder').classList.remove('hidden');
+      document.getElementById('sim-chart-canvas').classList.add('hidden');
+      document.getElementById('sim-editor-disabled').classList.remove('hidden');
+      document.getElementById('sim-editor-controls').classList.add('hidden');
+      document.getElementById('sim-chart-title').value = 'Кроки за тиждень';
+
+      initTask1();
+      initTask2();
+      initTask3();
+      initTask4();
+      updateHeaderProgress(1);
+      goToScreen('screen-task-1');
+    }
+
+    // Модальне вікно та експорт самого index.html для GitHub Pages
+    function openGithubModal() {
+      document.getElementById('github-modal').classList.remove('hidden');
+    }
+    function closeGithubModal() {
+      document.getElementById('github-modal').classList.add('hidden');
+    }
+
+    function downloadSelfHtml() {
+      const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'index.html';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Файл index.html завантажено! Готовий до публікації на GitHub Pages.');
+    }
+
+    // Запуск ініціалізації після завантаження сторінки
+    window.addEventListener('DOMContentLoaded', () => {
+      initTask1();
+      initTask2();
+      initTask3();
+      initTask4();
+    });
+  </script>
+</body>
+</html>
